@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#efe6d6">
+<meta name="description" content="无限庭院 —— 致敬《Manifold Garden》的网页复刻：六向重力、无限循环的空间、方块、水与树。单文件、离线运行。">
+<title>无限庭院 · Manifold Garden</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f1e9db'/%3E%3Cpath d='M32 8 53 20v24L32 56 11 44V20z' fill='none' stroke='%23364a52' stroke-width='3'/%3E%3Cpath d='M32 8v24m0 0 21-12M32 32 11 20m21 12v24' fill='none' stroke='%23e45c4c' stroke-width='3'/%3E%3C/svg%3E">
+<style>/*{{STYLE}}*/</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vignette"></div>
+
+<!-- 标题画面 -->
+<section id="title" class="screen">
+  <div class="title-wrap">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" class="brand-mark" aria-hidden="true">
+        <path d="M32 6 55 19v26L32 58 9 45V19z" />
+        <path d="M32 6v26m0 0 23-13M32 32 9 19m23 13v26" class="accent" />
+        <path d="M32 19 43.5 25.5v13L32 45l-11.5-6.5v-13z" class="inner" />
+      </svg>
+      <span>AN HTML HOMAGE TO MANIFOLD GARDEN</span>
+    </div>
+    <h1 class="title-cn">无限庭院</h1>
+    <div class="title-en">MANIFOLD&nbsp;&nbsp;GARDEN</div>
+    <p class="title-poem">墙可以是地面，<br>坠落即是归来。<br>在没有尽头的庭院里，重新学习重力。</p>
+    <nav class="menu" id="title-menu">
+      <button data-act="continue" id="btn-continue"><i>01</i>继续旅程<em></em></button>
+      <button data-act="new"><i>02</i>开始新的旅程</button>
+      <button data-act="gardens"><i>03</i>庭院</button>
+      <button data-act="settings"><i>04</i>设置</button>
+      <button data-act="controls"><i>05</i>操作</button>
+    </nav>
+  </div>
+  <div class="gravity-legend" aria-hidden="true">
+    <span style="--c:#e45c4c">赤</span><span style="--c:#e8b23c">金</span><span style="--c:#62b85a">翠</span><span style="--c:#9a6bdc">紫</span><span style="--c:#33b6c6">青</span><span style="--c:#4c72e0">蓝</span>
+  </div>
+  <footer class="title-foot">建议使用键鼠 · 佩戴耳机 · 全程离线运行</footer>
+</section>
+
+<!-- 游戏内 HUD -->
+<section id="hud" hidden>
+  <div id="crosshair" data-state="none">
+    <svg viewBox="-20 -20 40 40">
+      <circle class="dot" r="1.6" />
+      <circle class="ring" r="9" />
+      <g class="ticks"><path d="M0 -14v4M0 14v-4M-14 0h4M14 0h-4" /></g>
+      <g class="brackets"><path d="M-11 -6v-5h5M11 -6v-5h-5M-11 6v5h5M11 6v5h-5" /></g>
+      <path class="diamond" d="M0 -10 10 0 0 10 -10 0z" />
+      <path class="slash" d="M-7 7 7 -7" />
+    </svg>
+  </div>
+  <div id="garden-label"><span class="g-idx"></span><span class="g-name"></span></div>
+  <div id="hint"><span></span></div>
+  <div id="card">
+    <div class="card-idx"></div>
+    <div class="card-name"></div>
+    <div class="card-en"></div>
+    <div class="card-poem"></div>
+  </div>
+  <div id="grav">
+    <svg viewBox="-30 -30 60 60" id="grav-svg"></svg>
+    <div id="grav-name"></div>
+  </div>
+  <div id="action-tip"></div>
+  <div id="debug" hidden></div>
+</section>
+
+<!-- 暂停 -->
+<section id="pause" class="screen panel-screen" hidden>
+  <div class="panel">
+    <div class="panel-head"><span class="panel-idx" id="pause-idx"></span><h2 id="pause-name">暂停</h2></div>
+    <nav class="menu">
+      <button data-act="resume"><i>—</i>继续</button>
+      <button data-act="reset"><i>—</i>重置此庭院</button>
+      <button data-act="gardens"><i>—</i>庭院</button>
+      <button data-act="settings"><i>—</i>设置</button>
+      <button data-act="controls"><i>—</i>操作</button>
+      <button data-act="title"><i>—</i>返回标题</button>
+    </nav>
+  </div>
+</section>
+
+<!-- 庭院选择 -->
+<section id="gardens" class="screen panel-screen" hidden>
+  <div class="panel wide">
+    <div class="panel-head"><h2>庭院</h2><button class="close" data-act="back">返回</button></div>
+    <div id="garden-grid"></div>
+  </div>
+</section>
+
+<!-- 设置 -->
+<section id="settings" class="screen panel-screen" hidden>
+  <div class="panel">
+    <div class="panel-head"><h2>设置</h2><button class="close" data-act="back">返回</button></div>
+    <div class="settings" id="settings-body"></div>
+  </div>
+</section>
+
+<!-- 操作说明 -->
+<section id="controls" class="screen panel-screen" hidden>
+  <div class="panel">
+    <div class="panel-head"><h2>操作</h2><button class="close" data-act="back">返回</button></div>
+    <dl class="keys">
+      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>行走</dd>
+      <dt><kbd>Shift</kbd></dt><dd>快步</dd>
+      <dt><kbd>Space</kbd></dt><dd>跳跃</dd>
+      <dt><kbd>鼠标右键</kbd> / <kbd>F</kbd></dt><dd>看向墙面或天花板，让它成为地面</dd>
+      <dt><kbd>鼠标左键</kbd> / <kbd>E</kbd></dt><dd>拿起 / 放下 / 放入插槽</dd>
+      <dt><kbd>R</kbd></dt><dd>重置当前庭院</dd>
+      <dt><kbd>H</kbd></dt><dd>重新显示提示</dd>
+      <dt><kbd>Esc</kbd></dt><dd>暂停</dd>
+    </dl>
+    <div class="rules">
+      <p><b>重力</b> · 六个方向各有一种颜色。准星变成彩色圆环时，按右键便可让所看的表面成为地面。</p>
+      <p><b>方块</b> · 只有与当前重力同色的方块能被拿起；其他颜色的方块会冻结在原处，坚如磐石。手持方块时无法改变重力。</p>
+      <p><b>无限</b> · 世界在三个方向上首尾相连。坠入虚空，你会从天而降——方块与水也一样。</p>
+      <p><b>水与树</b> · 水向“下”流，遇阻则铺开，寻找最近的落差。被浇灌的树会结出方块。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 点击继续 -->
+<section id="resume" class="screen" hidden>
+  <div class="resume-box"><div class="resume-title">点击以继续</div><div class="resume-sub">Esc 打开菜单</div></div>
+</section>
+
+<!-- 结局 -->
+<section id="ending" class="screen" hidden>
+  <div class="ending-lines" id="ending-lines"></div>
+</section>
+
+<!-- 触屏 -->
+<div id="touch" hidden>
+  <div id="stick"><div id="knob"></div></div>
+  <button id="t-menu" class="tb">☰</button>
+  <button id="t-shift" class="tb big">重力</button>
+  <button id="t-use" class="tb big">拿取</button>
+  <button id="t-jump" class="tb">跳</button>
+</div>
+
+<div id="fade"></div>
+<div id="boot"><div class="boot-mark"></div><div class="boot-text">正在搭建庭院</div></div>
+<div id="error" hidden></div>
+
+<script>/*{{SCRIPT}}*/</script>
+</body>
+</html>
